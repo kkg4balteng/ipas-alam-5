@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MPI IPAS Kelas 5 - Geografi Indonesia</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800&display=swap');
+        
+        body {
+            font-family: 'Nunito', sans-serif;
+            background-color: #f0fdf4;
+            overflow: hidden; /* Prevent scrolling on IFP */
+            user-select: none; /* Prevent accidental text selection on touch */
+        }
+        
+        h1, h2, h3, h4, h5, .title-font {
+            font-family: 'Fredoka', sans-serif;
+        }
+
+        .bg-global {
+            /* Menggunakan direct link dari freeimage.host (iili.io) agar bisa dimuat sebagai background CSS */
+            background-image: url('https://iili.io/BYUlwJa.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            background-color: #dcfce7; /* Fallback */
+        }
+
+        .card-shadow {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05), 0 8px 0px 0px rgba(21, 128, 61, 1);
+        }
+        
+        .card-shadow:active {
+            transform: translateY(4px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06), 0 4px 0px 0px rgba(21, 128, 61, 1);
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        /* Hover animation for menu cards */
+        .menu-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .menu-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Scrollbar styling for content areas */
+        .custom-scroll::-webkit-scrollbar {
+            width: 12px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+            background: #e5e7eb;
+            border-radius: 8px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background-color: #22c55e;
+            border-radius: 8px;
+            border: 3px solid #e5e7eb;
+        }
+
+        /* Drag and Drop styles */
+        .draggable-item {
+            touch-action: none; /* Prevent default touch actions like scrolling when dragging */
+        }
+        .dragging {
+            opacity: 0.8;
+            transform: scale(1.05);
+            z-index: 50;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // --- DATA CONTENT ---
+        const gameData = {
+            level1: {
+                title: "Letak Wilayah Indonesia",
+                challenges: [
+                    { id: 'l1c1', diff: 'Mudah', type: 'mcq', q: "Indonesia diapit oleh dua samudra besar, yaitu...", options: ["Hindia dan Atlantik", "Hindia dan Pasifik", "Pasifik dan Arktik", "Atlantik dan Pasifik"], ans: 1 },
+                    { id: 'l1c2', diff: 'Sedang', type: 'mcq', q: "Secara geografis, Indonesia terletak di antara Benua Asia dan Benua...", options: ["Eropa", "Afrika", "Amerika", "Australia"], ans: 3 },
+                    { id: 'l1c3', diff: 'Sulit', type: 'mcq', q: "Garis khayal yang membagi bumi menjadi belahan utara dan selatan yang melewati Indonesia disebut...", options: ["Garis Bujur", "Garis Lintang", "Garis Khatulistiwa", "Garis Meridian"], ans: 2 }
+                ]
+            },
+            level2: {
+                title: "Kenampakan Alam & Iklim",
+                challenges: [
+                    { id: 'l2c1', diff: 'Mudah', type: 'mcq', q: "Kenampakan alam berupa daratan yang sangat tinggi menjulang disebut...", options: ["Pantai", "Dataran Rendah", "Pegunungan", "Selat"], ans: 2 },
+                    { id: 'l2c2', diff: 'Sedang', type: 'mcq', q: "Karena terletak di garis khatulistiwa, Indonesia memiliki iklim...", options: ["Subtropis", "Tropis", "Sedang", "Dingin"], ans: 1 },
+                    // NEW: Drag and Drop Challenge
+                    { 
+                        id: 'l2c3', 
+                        diff: 'Sulit', 
+                        type: 'dnd', 
+                        title: "Cocokkan Flora & Fauna!",
+                        q: "Tarik (Drag) nama hewan/tumbuhan ke keranjang wilayah persebaran yang tepat!",
+                        items: [
+                            { id: 'i1', name: 'Harimau Sumatra', type: 'Asiatis', icon: 'cat' },
+                            { id: 'i2', name: 'Komodo', type: 'Peralihan', icon: 'bug' },
+                            { id: 'i3', name: 'Burung Cenderawasih', type: 'Australis', icon: 'bird' },
+                            { id: 'i4', name: 'Bunga Rafflesia', type: 'Asiatis', icon: 'flower-2' },
+                            { id: 'i5', name: 'Pohon Sagu', type: 'Australis', icon: 'tree-palm' }
+                        ],
+                        zones: [
+                            { id: 'Asiatis', label: 'Tipe Asiatis', color: 'yellow' },
+                            { id: 'Peralihan', label: 'Tipe Peralihan', color: 'orange' },
+                            { id: 'Australis', label: 'Tipe Australis', color: 'red' }
+                        ]
+                    }
+                ]
+            },
+            level3: {
+                title: "Pengaruh Geografis",
+                challenges: [
+                    { id: 'l3c1', diff: 'Mudah', type: 'mcq', q: "Mayoritas mata pencaharian penduduk yang tinggal di daerah pesisir pantai adalah...", options: ["Petani teh", "Pekerja kantoran", "Nelayan", "Penambang emas"], ans: 2 },
+                    { id: 'l3c2', diff: 'Sedang', type: 'mcq', q: "Keuntungan letak geografis Indonesia di persimpangan lalu lintas dunia adalah...", options: ["Sering terjadi bencana alam gempa bumi", "Menjadi jalur perdagangan internasional yang ramai", "Memiliki banyak gunung berapi aktif", "Suhu udara menjadi lebih panas"], ans: 1 },
+                    { id: 'l3c3', diff: 'Sulit', type: 'mcq', q: "Tantangan pembangunan antar wilayah di Indonesia sering tidak merata. Hal ini utamanya disebabkan oleh...", options: ["Kondisi geografis kepulauan yang menyulitkan transportasi dan akses", "Jumlah penduduk yang terlalu sedikit di setiap pulau", "Kurangnya sumber daya alam di Indonesia", "Semua masyarakat ingin tinggal di perkotaan"], ans: 0 }
+                ]
+            }
+        };
+
+        // --- COMPONENTS ---
+
+        // 1. Icons Component (SVG wrappers)
+        const Icon = ({ name, size = 24, className = "" }) => {
+            return <i data-lucide={name} style={{ width: size, height: size }} className={className}></i>;
+        };
+
+        // 2. Drag and Drop Mini Game Component
+        const DragAndDropGame = ({ data, onComplete }) => {
+            const [items, setItems] = useState(data.items.map(item => ({ ...item, zone: null })));
+            const [draggedItemId, setDraggedItemId] = useState(null);
+            
+            // For touch interaction tracking
+            const dragNode = useRef(null);
+            const dropZonesRef = useRef({});
+
+            useEffect(() => {
+                if (window.lucide) window.lucide.createIcons();
+            }, [items]);
+
+            // --- Mouse Events ---
+            const handleDragStart = (e, id) => {
+                setDraggedItemId(id);
+                // Required for Firefox
+                e.dataTransfer.setData('text/plain', id);
+                e.dataTransfer.effectAllowed = 'move';
+            };
+
+            const handleDragOver = (e) => {
+                e.preventDefault(); // Necessary to allow dropping
+                e.dataTransfer.dropEffect = 'move';
+            };
+
+            const handleDrop = (e, zoneId) => {
+                e.preventDefault();
+                const itemId = e.dataTransfer.getData('text/plain') || draggedItemId;
+                if (itemId) {
+                    processDrop(itemId, zoneId);
+                }
+            };
+
+            // --- Touch Events for Interactive Flat Panel ---
+            const handleTouchStart = (e, id) => {
+                setDraggedItemId(id);
+                dragNode.current = e.target.closest('.draggable-item');
+                // Optional: add visual feedback immediately
+            };
+
+            const handleTouchMove = (e) => {
+                if (!draggedItemId || !dragNode.current) return;
+                // Prevent default scrolling while dragging
+                e.preventDefault();
+                
+                // Visual movement of the dragged item (optional, basic implementation)
+                const touch = e.touches[0];
+                dragNode.current.style.position = 'fixed';
+                dragNode.current.style.left = `${touch.clientX - dragNode.current.offsetWidth / 2}px`;
+                dragNode.current.style.top = `${touch.clientY - dragNode.current.offsetHeight / 2}px`;
+                dragNode.current.style.zIndex = '1000';
+            };
+
+            const handleTouchEnd = (e) => {
+                if (!draggedItemId || !dragNode.current) return;
+                
+                const touch = e.changedTouches[0];
+                
+                // Reset styling
+                dragNode.current.style.position = '';
+                dragNode.current.style.left = '';
+                dragNode.current.style.top = '';
+                dragNode.current.style.zIndex = '';
+
+                // Find if touch ended over a drop zone
+                let droppedZoneId = null;
+                for (const zoneId in dropZonesRef.current) {
+                    const zoneElement = dropZonesRef.current[zoneId];
+                    if (zoneElement) {
+                        const rect = zoneElement.getBoundingClientRect();
+                        if (
+                            touch.clientX >= rect.left &&
+                            touch.clientX <= rect.right &&
+                            touch.clientY >= rect.top &&
+                            touch.clientY <= rect.bottom
+                        ) {
+                            droppedZoneId = zoneId;
+                            break;
+                        }
+                    }
+                }
+
+                if (droppedZoneId) {
+                    processDrop(draggedItemId, droppedZoneId);
+                }
+                
+                setDraggedItemId(null);
+                dragNode.current = null;
+            };
+
+            // --- Core Logic ---
+            const processDrop = (itemId, zoneId) => {
+                setItems(prevItems => 
+                    prevItems.map(item => {
+                        if (item.id === itemId) {
+                            return { ...item, zone: zoneId };
+                        }
+                        return item;
+                    })
+                );
+                setDraggedItemId(null);
+            };
+
+            const handleReturnToPool = (itemId) => {
+                 setItems(prevItems => 
+                    prevItems.map(item => {
+                        if (item.id === itemId) {
+                            return { ...item, zone: null };
+                        }
+                        return item;
+                    })
+                );
+            };
+
+            const checkAnswers = () => {
+                const allPlaced = items.every(item => item.zone !== null);
+                if (!allPlaced) {
+                    alert("Tolong letakkan semua gambar ke dalam keranjang terlebih dahulu!");
+                    return;
+                }
+
+                const isAllCorrect = items.every(item => item.type === item.zone);
+                onComplete(isAllCorrect);
+            };
+
+            return (
+                <div className="w-full flex flex-col items-center gap-8">
+                    <div className="bg-white/90 p-6 rounded-2xl shadow-md border-2 border-orange-200 text-center w-full">
+                        <h2 className="text-3xl font-bold title-font text-orange-600 mb-2">{data.title}</h2>
+                        <p className="text-xl text-gray-700">{data.q}</p>
+                    </div>
+
+                    {/* Source Pool */}
+                    <div className="bg-white/50 p-6 rounded-2xl w-full min-h-[120px] flex flex-wrap justify-center gap-4 border-dashed border-4 border-gray-300">
+                        {items.filter(item => item.zone === null).map(item => (
+                            <div 
+                                key={item.id}
+                                draggable="true"
+                                onDragStart={(e) => handleDragStart(e, item.id)}
+                                onDragEnd={() => setDraggedItemId(null)}
+                                onTouchStart={(e) => handleTouchStart(e, item.id)}
+                                onTouchMove={handleTouchMove}
+                                onTouchEnd={handleTouchEnd}
+                                className={`draggable-item bg-white px-6 py-4 rounded-xl card-shadow border-2 border-gray-200 cursor-grab active:cursor-grabbing flex items-center gap-3 select-none
+                                    ${draggedItemId === item.id ? 'dragging opacity-50' : ''}`}
+                            >
+                                <div className="bg-gray-100 p-2 rounded-full"><Icon name={item.icon} size={28} className="text-gray-600"/></div>
+                                <span className="text-xl font-bold">{item.name}</span>
+                            </div>
+                        ))}
+                        {items.filter(item => item.zone === null).length === 0 && (
+                            <div className="text-gray-400 font-bold text-xl flex items-center h-full">Semua item telah dipindahkan!</div>
+                        )}
+                    </div>
+
+                    {/* Drop Zones */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
+                        {data.zones.map(zone => {
+                            const zoneItems = items.filter(item => item.zone === zone.id);
+                            
+                            // Determine color classes
+                            let bgColor = 'bg-gray-100';
+                            let borderColor = 'border-gray-300';
+                            let headerColor = 'bg-gray-200 text-gray-700';
+                            
+                            if (zone.color === 'yellow') { bgColor='bg-yellow-50'; borderColor='border-yellow-300'; headerColor='bg-yellow-200 text-yellow-800'; }
+                            if (zone.color === 'orange') { bgColor='bg-orange-50'; borderColor='border-orange-300'; headerColor='bg-orange-200 text-orange-800'; }
+                            if (zone.color === 'red') { bgColor='bg-red-50'; borderColor='border-red-300'; headerColor='bg-red-200 text-red-800'; }
+
+                            return (
+                                <div 
+                                    key={zone.id}
+                                    ref={el => dropZonesRef.current[zone.id] = el}
+                                    onDragOver={handleDragOver}
+                                    onDrop={(e) => handleDrop(e, zone.id)}
+                                    className={`${bgColor} border-4 border-dashed ${borderColor} rounded-2xl overflow-hidden min-h-[250px] flex flex-col transition-colors ${draggedItemId ? 'bg-green-50 border-green-400' : ''}`}
+                                >
+                                    <div className={`${headerColor} p-4 text-center font-bold text-2xl title-font`}>
+                                        {zone.label}
+                                    </div>
+                                    <div className="p-4 flex-1 flex flex-col gap-3 relative">
+                                        {zoneItems.length === 0 && <div className="absolute inset-0 flex items-center justify-center text-gray-400 font-bold opacity-50">Tarik ke sini</div>}
+                                        {zoneItems.map(item => (
+                                            <div 
+                                                key={item.id}
+                                                onClick={() => handleReturnToPool(item.id)}
+                                                className="bg-white px-4 py-3 rounded-xl shadow-sm border border-gray-200 flex items-center gap-3 cursor-pointer hover:bg-red-50 hover:border-red-200 group"
+                                                title="Ketuk untuk mengembalikan"
+                                            >
+                                                <div className="bg-gray-100 p-1 rounded-full"><Icon name={item.icon} size={20} className="text-gray-600"/></div>
+                                                <span className="font-bold text-lg flex-1">{item.name}</span>
+                                                <Icon name="x" size={20} className="text-red-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    <button 
+                        onClick={checkAnswers}
+                        className="mt-4 bg-green-500 hover:bg-green-600 text-white px-10 py-4 rounded-2xl text-2xl font-bold card-shadow"
+                    >
+                        PERIKSA JAWABAN
+                    </button>
+                </div>
+            );
+        };
+
+        // 3. Main App Component
+        const App = () => {
+            const [screen, setScreen] = useState('home'); // home, menu, tujuan, materi, game, asesmen, hots
+            const [userData, setUserData] = useState({ name: '', school: '' });
+            const [isFullscreen, setIsFullscreen] = useState(false);
+            
+            // Progress: { level1: 0-3, level2: 0-3, level3: 0-3 }
+            const [progress, setProgress] = useState({ level1: 0, level2: 0, level3: 0 });
+
+            // State for sub-screens moved to top level to prevent React Hook errors
+            const [activeTab, setActiveTab] = useState(1);
+            const [activeChallenge, setActiveChallenge] = useState(null); // null means map view
+            const [feedback, setFeedback] = useState(null); // { isCorrect: boolean, msg: string }
+
+            useEffect(() => {
+                // Initialize Lucide icons
+                if (window.lucide) {
+                    window.lucide.createIcons();
+                }
+            }, [screen, progress, activeTab, activeChallenge, feedback]);
+
+            const toggleFullscreen = () => {
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen().catch(err => {
+                        console.log(`Error attempting to enable fullscreen: ${err.message}`);
+                    });
+                    setIsFullscreen(true);
+                } else {
+                    if (document.exitFullscreen) {
+                        document.exitFullscreen();
+                        setIsFullscreen(false);
+                    }
+                }
+            };
+
+            const playClickSound = () => {
+                // Placeholder for sound effect (if needed in future)
+            };
+
+            const navigate = (newScreen) => {
+                playClickSound();
+                setScreen(newScreen);
+                if (newScreen !== 'game') {
+                    setActiveChallenge(null);
+                    setFeedback(null);
+                }
+            };
+
+            // --- Sub-Screens Renderers ---
+
+            const renderHome = () => (
+                <div className="flex flex-col items-center justify-center h-screen bg-global relative w-full">
+                    <button onClick={toggleFullscreen} className="absolute top-4 right-4 bg-gray-800 text-white p-3 rounded-full hover:bg-gray-700">
+                        <Icon name={isFullscreen ? "minimize" : "maximize"} size={28} />
+                    </button>
+                    
+                    <div className="glass-panel p-8 rounded-3xl shadow-2xl max-w-4xl w-full text-center flex flex-col md:flex-row items-center gap-8">
+                        <div className="w-1/3 flex flex-col items-center">
+                            <div className="w-48 h-48 bg-white rounded-full border-8 border-green-500 overflow-hidden mb-4 flex items-center justify-center relative shadow-inner">
+                                {/* Custom Image Avatar Pak Rahmat */}
+                                <img 
+                                    src="https://iili.io/BYUEGWl.png" 
+                                    alt="Pak Rahmat" 
+                                    className="w-full h-full object-cover" 
+                                    onError={(e) => { e.target.onerror = null; e.target.src="https://iili.io/BYUEGWl.jpg"; }}
+                                />
+                            </div>
+                            <div className="bg-yellow-400 text-yellow-900 font-bold px-4 py-2 rounded-full title-font text-xl border-4 border-white shadow-lg -mt-8 relative z-10">
+                                Pak Rahmat
+                            </div>
+                        </div>
+                        
+                        <div className="w-2/3 text-left">
+                            <h1 className="text-4xl font-extrabold text-green-700 mb-4 title-font tracking-wide">
+                                Halo, Petualang Cilik! 🌍
+                            </h1>
+                            <p className="text-xl text-gray-700 mb-6 font-medium leading-relaxed">
+                                Selamat datang di MPI IPAS. Hari ini kita akan menjelajahi keindahan, letak geografis, dan kekayaan alam Indonesia. Sudah siap berpetualang dan belajar bersama Bapak?
+                            </p>
+                            
+                            <div className="space-y-4 mb-8">
+                                <input 
+                                    type="text" 
+                                    placeholder="Masukkan Nama Lengkapmu..." 
+                                    className="w-full text-xl p-4 border-4 border-green-300 rounded-2xl focus:outline-none focus:border-green-600 focus:ring-4 focus:ring-green-200 transition"
+                                    value={userData.name}
+                                    onChange={(e) => setUserData({...userData, name: e.target.value})}
+                                />
+                                <input 
+                                    type="text" 
+                                    placeholder="Asal Sekolah..." 
+                                    className="w-full text-xl p-4 border-4 border-green-300 rounded-2xl focus:outline-none focus:border-green-600 focus:ring-4 focus:ring-green-200 transition"
+                                    value={userData.school}
+                                    onChange={(e) => setUserData({...userData, school: e.target.value})}
+                                />
+                            </div>
+                            
+                            <button 
+                                onClick={() => navigate('menu')}
+                                disabled={!userData.name || !userData.school}
+                                className={`w-full py-4 rounded-2xl title-font text-2xl text-white transition-all transform card-shadow ${(!userData.name || !userData.school) ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-500 hover:bg-green-600 active:scale-95'}`}
+                            >
+                                MULAI PETUALANGAN!
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+
+            const renderMenu = () => (
+                <div className="flex flex-col h-screen bg-global w-full">
+                    <header className="bg-green-800/90 backdrop-blur-md text-white p-6 shadow-lg flex justify-between items-center z-20 border-b border-green-600">
+                        <div className="flex items-center gap-4">
+                            <div className="bg-white/20 p-3 rounded-full">
+                                <Icon name="compass" size={32} />
+                            </div>
+                            <div>
+                                <h1 className="text-3xl font-extrabold title-font tracking-wide drop-shadow-md">Menu Navigasi Utama</h1>
+                                <p className="text-lg font-medium opacity-90">Petualang Aktif: <span className="font-bold text-yellow-300">{userData.name}</span></p>
+                            </div>
+                        </div>
+                        <button onClick={() => navigate('home')} className="bg-red-500 hover:bg-red-600 px-6 py-3 rounded-2xl font-bold flex items-center gap-2 text-xl transition-colors shadow-md border-b-4 border-red-700 active:border-b-0 active:translate-y-1">
+                            <Icon name="log-out" /> Keluar
+                        </button>
+                    </header>
+                    
+                    <div className="flex-1 p-8 flex items-center justify-center relative overflow-y-auto custom-scroll">
+                        {/* Semi-transparent overlay to make cards pop more against complex background */}
+                        <div className="absolute inset-0 bg-black/10 pointer-events-none"></div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl w-full relative z-10 p-4">
+                            
+                            <button onClick={() => navigate('tujuan')} className="menu-card bg-gradient-to-br from-blue-400 to-blue-600 text-white p-8 rounded-[2rem] flex flex-col items-center justify-center gap-6 border-4 border-white/30 shadow-xl group">
+                                <div className="bg-white/20 p-6 rounded-full group-hover:scale-110 group-hover:rotate-6 transition-transform duration-300 shadow-inner">
+                                    <Icon name="target" size={72} />
+                                </div>
+                                <div className="text-center">
+                                    <h2 className="text-3xl font-bold title-font mb-2 drop-shadow-md">Tujuan & Panduan</h2>
+                                    <p className="text-blue-100 font-medium">Langkah Awal Petualangan</p>
+                                </div>
+                            </button>
+
+                            <button onClick={() => navigate('materi')} className="menu-card bg-gradient-to-br from-purple-400 to-purple-600 text-white p-8 rounded-[2rem] flex flex-col items-center justify-center gap-6 border-4 border-white/30 shadow-xl group">
+                                <div className="bg-white/20 p-6 rounded-full group-hover:scale-110 group-hover:-rotate-6 transition-transform duration-300 shadow-inner">
+                                    <Icon name="book-open" size={72} />
+                                </div>
+                                <div className="text-center">
+                                    <h2 className="text-3xl font-bold title-font mb-2 drop-shadow-md">Rangkuman Materi</h2>
+                                    <p className="text-purple-100 font-medium">Bekal Pengetahuan</p>
+                                </div>
+                            </button>
+
+                            <button onClick={() => navigate('game')} className="menu-card bg-gradient-to-br from-orange-400 to-orange-600 text-white p-8 rounded-[2rem] flex flex-col items-center justify-center gap-6 border-4 border-white/30 shadow-xl group lg:row-span-2">
+                                <div className="bg-white/20 p-8 rounded-full group-hover:scale-110 group-hover:rotate-12 transition-transform duration-300 shadow-inner relative">
+                                    {/* Pulse effect indicator */}
+                                    <div className="absolute inset-0 rounded-full border-4 border-white animate-ping opacity-20"></div>
+                                    <Icon name="map" size={88} />
+                                </div>
+                                <div className="text-center">
+                                    <h2 className="text-4xl font-extrabold title-font mb-3 drop-shadow-md">Ayo Berpetualang!</h2>
+                                    <p className="text-orange-100 text-xl font-medium">Uji Pengetahuanmu di Sini</p>
+                                    <div className="mt-6 bg-white/20 px-4 py-2 rounded-full inline-block font-bold">
+                                        Progres: {progress.level1 + progress.level2 + progress.level3}/9
+                                    </div>
+                                </div>
+                            </button>
+
+                            <button onClick={() => navigate('asesmen')} className="menu-card bg-gradient-to-br from-pink-400 to-pink-600 text-white p-8 rounded-[2rem] flex flex-col items-center justify-center gap-6 border-4 border-white/30 shadow-xl group">
+                                <div className="bg-white/20 p-6 rounded-full group-hover:scale-110 group-hover:-rotate-6 transition-transform duration-300 shadow-inner">
+                                    <Icon name="brush" size={72} />
+                                </div>
+                                <div className="text-center">
+                                    <h2 className="text-3xl font-bold title-font mb-2 drop-shadow-md">Asesmen Proyek</h2>
+                                    <p className="text-pink-100 font-medium">Tugas Kelompok Kreatif</p>
+                                </div>
+                            </button>
+
+                            <button onClick={() => navigate('hots')} className="menu-card bg-gradient-to-br from-red-400 to-red-600 text-white p-8 rounded-[2rem] flex flex-col items-center justify-center gap-6 border-4 border-white/30 shadow-xl group">
+                                <div className="bg-white/20 p-6 rounded-full group-hover:scale-110 group-hover:rotate-6 transition-transform duration-300 shadow-inner">
+                                    <Icon name="brain-circuit" size={72} />
+                                </div>
+                                <div className="text-center">
+                                    <h2 className="text-3xl font-bold title-font mb-2 drop-shadow-md">Tantangan HOTS</h2>
+                                    <p className="text-red-100 font-medium">Studi Kasus Balikpapan</p>
+                                </div>
+                            </button>
+
+                        </div>
+                    </div>
+                </div>
+            );
+
+            const renderTujuan = () => (
+                <div className="flex flex-col h-screen bg-global w-full">
+                    <header className="bg-blue-700/90 backdrop-blur-md text-white p-6 shadow-md flex justify-between items-center z-10">
+                        <h1 className="text-3xl font-bold title-font flex items-center gap-3">
+                            <Icon name="target" /> Tujuan Pembelajaran & Panduan
+                        </h1>
+                        <button onClick={() => navigate('menu')} className="bg-blue-800 hover:bg-blue-900 px-6 py-3 rounded-xl font-bold flex items-center gap-2 text-xl">
+                            <Icon name="arrow-left" /> Kembali
+                        </button>
+                    </header>
+                    <div className="flex-1 p-8 overflow-y-auto custom-scroll">
+                        <div className="max-w-4xl mx-auto space-y-8">
+                            <div className="glass-panel p-8 rounded-3xl shadow-xl">
+                                <h2 className="text-3xl font-bold text-blue-800 mb-6 flex items-center gap-3">
+                                    <span className="bg-blue-200 p-3 rounded-full text-blue-600"><Icon name="award" /></span>
+                                    Tujuan Pembelajaran
+                                </h2>
+                                <p className="text-2xl text-gray-700 leading-relaxed bg-white p-6 rounded-2xl border-l-8 border-blue-500 shadow-sm">
+                                    "Peserta didik mampu menjelaskan <b>letak</b> dan <b>kondisi geografis</b> negara Indonesia dengan menggunakan peta konvensional maupun digital, serta menganalisis pengaruh letak tersebut terhadap kehidupan."
+                                </p>
+                            </div>
+
+                            <div className="glass-panel p-8 rounded-3xl shadow-xl">
+                                <h2 className="text-3xl font-bold text-blue-800 mb-6 flex items-center gap-3">
+                                    <span className="bg-blue-200 p-3 rounded-full text-blue-600"><Icon name="info" /></span>
+                                    Panduan Penggunaan (Papan Interaktif)
+                                </h2>
+                                <ul className="space-y-4 text-xl text-gray-700">
+                                    <li className="flex items-start gap-4 p-4 bg-white rounded-xl shadow-sm"><Icon name="hand" className="text-blue-500 mt-1 flex-shrink-0" /> Sentuh tombol di layar untuk bernavigasi.</li>
+                                    <li className="flex items-start gap-4 p-4 bg-white rounded-xl shadow-sm"><Icon name="unlock" className="text-blue-500 mt-1 flex-shrink-0" /> Di menu "Ayo Berpetualang", selesaikan misi secara berurutan untuk membuka level berikutnya.</li>
+                                    <li className="flex items-start gap-4 p-4 bg-white rounded-xl shadow-sm"><Icon name="users" className="text-blue-500 mt-1 flex-shrink-0" /> Untuk "Asesmen Sumatif", diskusikan bersama teman kelompokmu dan guru!</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+
+            const renderMateri = () => {
+                return (
+                    <div className="flex flex-col h-screen bg-global w-full">
+                        <header className="bg-purple-700/90 backdrop-blur-md text-white p-6 shadow-md flex justify-between items-center z-10">
+                            <h1 className="text-3xl font-bold title-font flex items-center gap-3">
+                                <Icon name="book-open" /> Rangkuman Materi IPAS Bab 6
+                            </h1>
+                            <button onClick={() => navigate('menu')} className="bg-purple-800 hover:bg-purple-900 px-6 py-3 rounded-xl font-bold flex items-center gap-2 text-xl">
+                                <Icon name="arrow-left" /> Kembali
+                            </button>
+                        </header>
+                        
+                        <div className="flex flex-1 overflow-hidden">
+                            {/* Tabs sidebar */}
+                            <div className="w-1/4 bg-white/80 backdrop-blur-md border-r border-purple-200 p-6 flex flex-col gap-4">
+                                <button onClick={() => setActiveTab(1)} className={`p-4 text-left rounded-2xl text-xl font-bold transition ${activeTab === 1 ? 'bg-purple-500 text-white shadow-lg' : 'bg-purple-100 text-purple-800 hover:bg-purple-200'}`}>1. Letak Indonesia</button>
+                                <button onClick={() => setActiveTab(2)} className={`p-4 text-left rounded-2xl text-xl font-bold transition ${activeTab === 2 ? 'bg-purple-500 text-white shadow-lg' : 'bg-purple-100 text-purple-800 hover:bg-purple-200'}`}>2. Alam & Iklim</button>
+                                <button onClick={() => setActiveTab(3)} className={`p-4 text-left rounded-2xl text-xl font-bold transition ${activeTab === 3 ? 'bg-purple-500 text-white shadow-lg' : 'bg-purple-100 text-purple-800 hover:bg-purple-200'}`}>3. Pengaruh Geografis</button>
+                            </div>
+                            
+                            {/* Content area */}
+                            <div className="w-3/4 p-8 overflow-y-auto custom-scroll">
+                                <div className="glass-panel p-8 rounded-3xl shadow-xl min-h-full">
+                                    {activeTab === 1 && (
+                                        <div className="space-y-6 text-xl text-gray-800">
+                                            <h2 className="text-4xl font-bold text-purple-700 title-font mb-6 border-b-4 border-purple-300 pb-4">Di Mana Letak Indonesia?</h2>
+                                            <p className="bg-yellow-100 p-6 rounded-2xl border-l-8 border-yellow-400">Indonesia berada di posisi yang sangat strategis, sering disebut posisi silang.</p>
+                                            <ul className="space-y-4 list-disc pl-8">
+                                                <li><b>Letak Geografis:</b> Terletak di antara dua benua (<b>Asia dan Australia</b>) dan dua samudra (<b>Hindia dan Pasifik</b>).</li>
+                                                <li><b>Letak Astronomis:</b> Indonesia berada di garis khatulistiwa (ekuator), membagi negara ini menjadi iklim tropis yang hangat sepanjang tahun.</li>
+                                                <li><b>Pengamatan:</b> Posisi ini dapat dilihat dengan jelas menggunakan Peta Konvensional (Atlas/Globe) atau Peta Digital (Aplikasi Peta).</li>
+                                            </ul>
+                                        </div>
+                                    )}
+                                    {activeTab === 2 && (
+                                        <div className="space-y-6 text-xl text-gray-800">
+                                            <h2 className="text-4xl font-bold text-purple-700 title-font mb-6 border-b-4 border-purple-300 pb-4">Kondisi Geografis, Iklim & Kekayaan Alam</h2>
+                                            
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                                <div className="bg-green-100 p-6 rounded-2xl border-t-8 border-green-500 shadow-sm">
+                                                    <div className="bg-green-200 w-12 h-12 rounded-full flex items-center justify-center mb-4"><Icon name="mountain" className="text-green-700"/></div>
+                                                    <h3 className="font-bold text-2xl mb-2">Ragam Kenampakan Alam</h3>
+                                                    <p>Indonesia memiliki wilayah <b>daratan</b> (pegunungan, gunung, dataran tinggi, dataran rendah) dan <b>perairan</b> (laut, selat, teluk, danau, sungai) yang sangat luas.</p>
+                                                </div>
+                                                <div className="bg-blue-100 p-6 rounded-2xl border-t-8 border-blue-500 shadow-sm">
+                                                    <div className="bg-blue-200 w-12 h-12 rounded-full flex items-center justify-center mb-4"><Icon name="sun" className="text-blue-700"/></div>
+                                                    <h3 className="font-bold text-2xl mb-2">Keadaan Iklim</h3>
+                                                    <p>Beriklim tropis karena di garis khatulistiwa. Memiliki dua musim (penghujan dan kemarau), curah hujan tinggi, dan mendapat sinar matahari sepanjang tahun.</p>
+                                                </div>
+                                            </div>
+
+                                            <div className="bg-white p-6 rounded-3xl shadow-md border-2 border-purple-100">
+                                                <h3 className="text-3xl font-bold text-purple-600 title-font flex items-center gap-3 mb-4">
+                                                    <Icon name="leaf" className="text-green-500" /> Persebaran Flora & Fauna
+                                                </h3>
+                                                <p className="mb-6 text-gray-700">Kekayaan alam Indonesia sangat luar biasa. Berdasarkan garis Wallace dan Weber, persebaran flora (tumbuhan) dan fauna (hewan) terbagi menjadi 3 wilayah utama:</p>
+                                                
+                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                                    <div className="bg-yellow-50 p-6 rounded-2xl border border-yellow-200 shadow-sm relative overflow-hidden">
+                                                        <div className="absolute top-0 right-0 bg-yellow-200 px-4 py-1 rounded-bl-xl font-bold text-sm text-yellow-800">Barat</div>
+                                                        <h4 className="font-bold text-2xl text-yellow-700 mb-2">Tipe Asiatis</h4>
+                                                        <p className="text-lg text-gray-600 mb-3">Mirip dengan flora/fauna Benua Asia. (Sumatra, Jawa, Kalimantan, Bali)</p>
+                                                        <ul className="text-lg list-disc pl-5 text-gray-700 space-y-1">
+                                                            <li><b>Fauna:</b> Harimau Sumatera, Gajah, Badak bercula satu, Orangutan.</li>
+                                                            <li><b>Flora:</b> Bunga Rafflesia Arnoldii, Kayu Jati.</li>
+                                                        </ul>
+                                                    </div>
+                                                    <div className="bg-orange-50 p-6 rounded-2xl border border-orange-200 shadow-sm relative overflow-hidden">
+                                                        <div className="absolute top-0 right-0 bg-orange-200 px-4 py-1 rounded-bl-xl font-bold text-sm text-orange-800">Tengah</div>
+                                                        <h4 className="font-bold text-2xl text-orange-700 mb-2">Tipe Peralihan</h4>
+                                                        <p className="text-lg text-gray-600 mb-3">Spesies endemik khas Indonesia. (Sulawesi, Nusa Tenggara)</p>
+                                                        <ul className="text-lg list-disc pl-5 text-gray-700 space-y-1">
+                                                            <li><b>Fauna:</b> Komodo, Anoa, Babi Rusa, Burung Maleo.</li>
+                                                            <li><b>Flora:</b> Kayu Cendana, Anggrek Serat.</li>
+                                                        </ul>
+                                                    </div>
+                                                    <div className="bg-red-50 p-6 rounded-2xl border border-red-200 shadow-sm relative overflow-hidden">
+                                                        <div className="absolute top-0 right-0 bg-red-200 px-4 py-1 rounded-bl-xl font-bold text-sm text-red-800">Timur</div>
+                                                        <h4 className="font-bold text-2xl text-red-700 mb-2">Tipe Australis</h4>
+                                                        <p className="text-lg text-gray-600 mb-3">Mirip flora/fauna Benua Australia. (Maluku, Papua)</p>
+                                                        <ul className="text-lg list-disc pl-5 text-gray-700 space-y-1">
+                                                            <li><b>Fauna:</b> Burung Cenderawasih, Kanguru pohon, Walabi, Kasuari.</li>
+                                                            <li><b>Flora:</b> Pohon Sagu, Pohon Matoa.</li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                    {activeTab === 3 && (
+                                        <div className="space-y-6 text-xl text-gray-800">
+                                            <h2 className="text-4xl font-bold text-purple-700 title-font mb-6 border-b-4 border-purple-300 pb-4">Pengaruh terhadap Kehidupan</h2>
+                                            <p>Letak dan kondisi geografis sangat memengaruhi kehidupan masyarakat kita:</p>
+                                            <ul className="space-y-4">
+                                                <li className="flex items-center gap-4 bg-white p-4 rounded-xl shadow"><div className="bg-purple-200 p-3 rounded-full"><Icon name="users" className="text-purple-600"/></div> <b>Sosial Budaya:</b> Menjadi jalur perdagangan dunia sejak dulu, sehingga budaya kita sangat beragam (bahasa, adat istiadat).</li>
+                                                <li className="flex items-center gap-4 bg-white p-4 rounded-xl shadow"><div className="bg-purple-200 p-3 rounded-full"><Icon name="coins" className="text-purple-600"/></div> <b>Ekonomi:</b> Mayoritas penduduk di pesisir menjadi nelayan, di dataran rendah menjadi petani, dan daerah wisata alam berkembang pesat.</li>
+                                                <li className="flex items-center gap-4 bg-white p-4 rounded-xl shadow"><div className="bg-purple-200 p-3 rounded-full"><Icon name="alert-triangle" className="text-purple-600"/></div> <b>Tantangan:</b> Pembangunan infrastruktur terhambat karena dipisahkan oleh laut dan pegunungan terjal.</li>
+                                            </ul>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            };
+
+            const renderGame = () => {
+                const isLevelUnlocked = (levelNum) => {
+                    if (levelNum === 1) return true;
+                    if (levelNum === 2) return progress.level1 === 3;
+                    if (levelNum === 3) return progress.level2 === 3;
+                    return false;
+                };
+
+                const isChallengeUnlocked = (levelNum, chalIndex) => {
+                    if (!isLevelUnlocked(levelNum)) return false;
+                    const levelKey = `level${levelNum}`;
+                    return progress[levelKey] >= chalIndex; // Can access if previous is completed
+                };
+
+                const handleAnswer = (levelKey, chalIndex, isCorrect) => {
+                    if (isCorrect) {
+                        setFeedback({ isCorrect: true, msg: "Luar Biasa! Jawabanmu Benar!" });
+                        // Update progress if this was the latest challenge
+                        if (progress[levelKey] === chalIndex) {
+                            setProgress(prev => ({
+                                ...prev,
+                                [levelKey]: prev[levelKey] + 1
+                            }));
+                        }
+                    } else {
+                        setFeedback({ isCorrect: false, msg: "Ups, kurang tepat. Ayo coba lagi!" });
+                    }
+                };
+
+                const handleMCQAnswer = (levelKey, chalIndex, selectedOptionAns, correctAns) => {
+                    handleAnswer(levelKey, chalIndex, selectedOptionAns === correctAns);
+                };
+
+                const closeFeedback = () => {
+                    if (feedback.isCorrect) {
+                        setActiveChallenge(null); // Back to map on success
+                    }
+                    setFeedback(null);
+                };
+
+                if (activeChallenge) {
+                    const { lvlNum, lvlKey, cIdx, data } = activeChallenge;
+                    return (
+                        <div className="flex flex-col h-screen bg-global w-full relative">
+                             {/* Feedback Modal */}
+                            {feedback && (
+                                <div className="absolute inset-0 bg-black/60 z-50 flex items-center justify-center p-8 backdrop-blur-sm">
+                                    <div className="bg-white rounded-3xl p-10 max-w-2xl w-full text-center shadow-2xl transform scale-105 transition-transform">
+                                        <div className={`mx-auto w-32 h-32 rounded-full flex items-center justify-center mb-6 ${feedback.isCorrect ? 'bg-green-100 text-green-500' : 'bg-red-100 text-red-500'}`}>
+                                            <Icon name={feedback.isCorrect ? "check-circle" : "x-circle"} size={80} />
+                                        </div>
+                                        <h2 className={`text-4xl font-bold title-font mb-4 ${feedback.isCorrect ? 'text-green-600' : 'text-red-600'}`}>
+                                            {feedback.msg}
+                                        </h2>
+                                        <button onClick={closeFeedback} className={`mt-8 px-10 py-4 text-2xl text-white font-bold rounded-2xl shadow-lg transition-transform hover:scale-105 active:scale-95 ${feedback.isCorrect ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600'}`}>
+                                            {feedback.isCorrect ? "Lanjutkan" : "Coba Lagi"}
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            <header className="bg-orange-700/90 backdrop-blur-md text-white p-6 shadow-md flex justify-between items-center z-10">
+                                <h1 className="text-3xl font-bold title-font flex items-center gap-3">
+                                    Level {lvlNum}: {gameData[lvlKey].title} - Tantangan {data.diff}
+                                </h1>
+                                <button onClick={() => setActiveChallenge(null)} className="bg-orange-800 hover:bg-orange-900 px-6 py-3 rounded-xl font-bold flex items-center gap-2 text-xl">
+                                    <Icon name="x" /> Batal
+                                </button>
+                            </header>
+                            
+                            <div className="flex-1 p-8 flex items-center justify-center overflow-y-auto custom-scroll">
+                                <div className={`glass-panel p-8 rounded-3xl shadow-2xl w-full ${data.type === 'dnd' ? 'max-w-6xl' : 'max-w-5xl'}`}>
+                                    {data.type === 'mcq' ? (
+                                        <>
+                                            <div className="bg-white p-8 rounded-2xl shadow-inner mb-10 border-4 border-orange-200">
+                                                <h2 className="text-4xl font-bold text-gray-800 leading-snug">{data.q}</h2>
+                                            </div>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                {data.options.map((opt, i) => (
+                                                    <button 
+                                                        key={i} 
+                                                        onClick={() => handleMCQAnswer(lvlKey, cIdx, i, data.ans)}
+                                                        className="bg-orange-500 hover:bg-orange-600 text-white text-2xl font-bold p-6 rounded-2xl card-shadow transition-transform active:scale-95 text-left flex items-center gap-4"
+                                                    >
+                                                        <div className="bg-white/30 rounded-full w-12 h-12 flex items-center justify-center flex-shrink-0">{String.fromCharCode(65 + i)}</div>
+                                                        {opt}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </>
+                                    ) : data.type === 'dnd' ? (
+                                        <DragAndDropGame 
+                                            data={data} 
+                                            onComplete={(isCorrect) => handleAnswer(lvlKey, cIdx, isCorrect)} 
+                                        />
+                                    ) : null}
+                                </div>
+                            </div>
+                        </div>
+                    );
+                }
+
+                return (
+                    <div className="flex flex-col h-screen bg-global w-full relative overflow-hidden">
+                        <header className="bg-orange-700/90 backdrop-blur-md text-white p-6 shadow-md flex justify-between items-center z-10">
+                            <h1 className="text-3xl font-bold title-font flex items-center gap-3">
+                                <Icon name="map" /> Peta Petualangan
+                            </h1>
+                            <div className="flex gap-4 items-center">
+                                <div className="bg-orange-800 px-4 py-2 rounded-xl text-lg font-bold">
+                                    Progres: {progress.level1 + progress.level2 + progress.level3} / 9 Selesai
+                                </div>
+                                <button onClick={() => navigate('menu')} className="bg-orange-800 hover:bg-orange-900 px-6 py-3 rounded-xl font-bold flex items-center gap-2 text-xl">
+                                    <Icon name="arrow-left" /> Menu
+                                </button>
+                            </div>
+                        </header>
+
+                        {/* Map Area */}
+                        <div className="flex-1 relative p-12 overflow-y-auto custom-scroll">
+                            
+                            {/* Decorative background map lines */}
+                            <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-20" preserveAspectRatio="none">
+                                <path d="M 200 100 C 300 150, 500 50, 600 200 S 800 300, 1000 200" stroke="#f97316" strokeWidth="10" fill="none" strokeDasharray="20 20"/>
+                                <path d="M 200 400 C 400 450, 600 350, 800 500 S 1000 600, 1200 500" stroke="#f97316" strokeWidth="10" fill="none" strokeDasharray="20 20"/>
+                            </svg>
+
+                            <div className="max-w-6xl mx-auto space-y-12 pb-20">
+                                {[1, 2, 3].map(lvlNum => {
+                                    const lvlKey = `level${lvlNum}`;
+                                    const lvlData = gameData[lvlKey];
+                                    const unlocked = isLevelUnlocked(lvlNum);
+                                    
+                                    return (
+                                        <div key={lvlNum} className={`glass-panel p-8 rounded-3xl shadow-xl border-4 transition-all ${unlocked ? 'border-orange-400 opacity-100' : 'border-gray-300 opacity-60 grayscale'}`}>
+                                            <div className="flex items-center gap-6 mb-8 border-b-4 border-orange-100 pb-4">
+                                                <div className={`w-20 h-20 rounded-full flex items-center justify-center text-3xl font-bold text-white shadow-inner ${unlocked ? 'bg-orange-500' : 'bg-gray-400'}`}>
+                                                    {unlocked ? lvlNum : <Icon name="lock" size={36} />}
+                                                </div>
+                                                <h2 className="text-4xl font-bold title-font text-gray-800">
+                                                    Level {lvlNum}: {lvlData.title}
+                                                </h2>
+                                                {progress[lvlKey] === 3 && <Icon name="check-circle-2" className="text-green-500 ml-auto" size={48} />}
+                                            </div>
+
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                                                {lvlData.challenges.map((chal, cIdx) => {
+                                                    const chalUnlocked = isChallengeUnlocked(lvlNum, cIdx);
+                                                    const isCompleted = progress[lvlKey] > cIdx;
+                                                    
+                                                    // Determine colors based on difficulty
+                                                    let diffColor = 'bg-blue-500';
+                                                    if (chal.diff === 'Sedang') diffColor = 'bg-yellow-500';
+                                                    if (chal.diff === 'Sulit') diffColor = 'bg-red-500';
+
+                                                    return (
+                                                        <button 
+                                                            key={cIdx}
+                                                            disabled={!chalUnlocked}
+                                                            onClick={() => setActiveChallenge({ lvlNum, lvlKey, cIdx, data: chal })}
+                                                            className={`relative p-6 rounded-3xl transition-transform text-white shadow-lg overflow-hidden flex flex-col items-center justify-center gap-4 h-48
+                                                                ${chalUnlocked ? `card-shadow ${isCompleted ? 'bg-green-500' : diffColor}` : 'bg-gray-300 cursor-not-allowed'}
+                                                                ${chalUnlocked && !isCompleted ? 'hover:scale-105 hover:brightness-110 active:scale-95' : ''}
+                                                            `}
+                                                        >
+                                                            {isCompleted && <div className="absolute inset-0 bg-black/20 flex items-center justify-center backdrop-blur-[2px] z-10"><Icon name="check" size={80} className="text-white opacity-80" /></div>}
+                                                            {!chalUnlocked && <Icon name="lock" size={48} className="text-gray-500" />}
+                                                            
+                                                            {chalUnlocked && (
+                                                                <>
+                                                                    <div className="bg-white/30 px-4 py-1 rounded-full text-sm font-bold uppercase tracking-wider">{chal.diff}</div>
+                                                                    <div className="text-2xl font-bold title-font text-center">Tantangan {cIdx + 1}</div>
+                                                                </>
+                                                            )}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                );
+            };
+
+            const renderAsesmen = () => (
+                <div className="flex flex-col h-screen bg-global w-full">
+                    <header className="bg-pink-700/90 backdrop-blur-md text-white p-6 shadow-md flex justify-between items-center z-10 shrink-0">
+                        <h1 className="text-3xl font-bold title-font flex items-center gap-3">
+                            <Icon name="brush" /> Asesmen Sumatif (Proyek)
+                        </h1>
+                        <button onClick={() => navigate('menu')} className="bg-pink-800 hover:bg-pink-900 px-6 py-3 rounded-xl font-bold flex items-center gap-2 text-xl shrink-0">
+                            <Icon name="arrow-left" /> Kembali
+                        </button>
+                    </header>
+                    <div className="flex-1 p-6 flex justify-center items-center overflow-hidden">
+                        <div className="max-w-7xl w-full h-full glass-panel rounded-3xl shadow-2xl border-4 border-pink-200 flex flex-col">
+                            <div className="bg-pink-100/90 backdrop-blur-sm p-4 text-center border-b-4 border-pink-200 shrink-0">
+                                <h2 className="text-3xl md:text-4xl font-extrabold text-pink-700 title-font mb-2">Proyek "Peta Wilayahku"</h2>
+                                <p className="text-lg md:text-xl text-gray-700 font-medium">Aktivitas Praktik Mengamati Geografi, Iklim & Kekayaan Alam</p>
+                            </div>
+                            <div className="p-6 flex-1 overflow-y-auto custom-scroll">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-max h-full content-start">
+                                    <div className="bg-white/80 p-5 rounded-2xl shadow-sm border border-pink-100 flex flex-col gap-3">
+                                        <div className="flex items-center gap-4 border-b border-pink-100 pb-3">
+                                            <div className="bg-pink-200 p-3 rounded-full text-pink-600 shrink-0"><Icon name="users" size={28} /></div>
+                                            <h3 className="text-xl font-bold text-gray-800 leading-tight">1. Tentukan Wilayah</h3>
+                                        </div>
+                                        <p className="text-gray-700 text-lg leading-snug">Bentuklah kelompok 3-4 orang. Pilih satu wilayah atau daerah di Indonesia (misalnya daerah tempat tinggal kalian sendiri) untuk diamati kondisi geografisnya.</p>
+                                    </div>
+                                    
+                                    <div className="bg-white/80 p-5 rounded-2xl shadow-sm border border-pink-100 flex flex-col gap-3">
+                                        <div className="flex items-center gap-4 border-b border-pink-100 pb-3">
+                                            <div className="bg-pink-200 p-3 rounded-full text-pink-600 shrink-0"><Icon name="search" size={28} /></div>
+                                            <h3 className="text-xl font-bold text-gray-800 leading-tight">2. Cari Informasi</h3>
+                                        </div>
+                                        <p className="text-gray-700 text-lg leading-snug">Gunakan buku atau internet untuk mencari tahu <b>kondisi iklim</b> (suhu, curah hujan) serta <b>kekayaan alam</b> yang dihasilkan di sana (tanaman khas, hewan, tambang).</p>
+                                    </div>
+                                    
+                                    <div className="bg-white/80 p-5 rounded-2xl shadow-sm border border-pink-100 flex flex-col gap-3">
+                                        <div className="flex items-center gap-4 border-b border-pink-100 pb-3">
+                                            <div className="bg-pink-200 p-3 rounded-full text-pink-600 shrink-0"><Icon name="map" size={28} /></div>
+                                            <h3 className="text-xl font-bold text-gray-800 leading-tight">3. Buat Mading</h3>
+                                        </div>
+                                        <p className="text-gray-700 text-lg leading-snug">Gambarlah peta sederhana wilayah tersebut di kertas karton. Tandai kenampakan alam utamanya (gunung, sungai, laut). Tempelkan informasi kekayaan alam yang ditemukan.</p>
+                                    </div>
+                                    
+                                    <div className="bg-white/80 p-5 rounded-2xl shadow-sm border border-pink-100 flex flex-col gap-3 md:col-span-1 lg:col-span-1 lg:col-start-1">
+                                        <div className="flex items-center gap-4 border-b border-pink-100 pb-3">
+                                            <div className="bg-pink-200 p-3 rounded-full text-pink-600 shrink-0"><Icon name="briefcase" size={28} /></div>
+                                            <h3 className="text-xl font-bold text-gray-800 leading-tight">4. Observasi Aktivitas</h3>
+                                        </div>
+                                        <p className="text-gray-700 text-lg leading-snug">Tambahkan penjelasan tentang pekerjaan utama penduduk di sana. Jelaskan bagaimana pekerjaan tersebut berhubungan dengan letak, iklim, dan kekayaan alam wilayah itu.</p>
+                                    </div>
+                                    
+                                    <div className="bg-white/80 p-5 rounded-2xl shadow-sm border border-pink-100 flex flex-col gap-3 md:col-span-2 lg:col-span-2 bg-gradient-to-br from-pink-50 to-white">
+                                        <div className="flex items-center gap-4 border-b border-pink-200 pb-3">
+                                            <div className="bg-pink-300 p-3 rounded-full text-pink-700 shrink-0"><Icon name="mic" size={28} /></div>
+                                            <h3 className="text-xl font-bold text-gray-800 leading-tight">5. Presentasi Kelas</h3>
+                                        </div>
+                                        <p className="text-gray-800 text-lg leading-snug font-medium">Presentasikan hasil karya mading kelompokmu di depan kelas! Bagikan cerita menarik wilayah tersebut agar teman-teman semakin bangga dengan alam Indonesia.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+
+            const renderHOTS = () => (
+                <div className="flex flex-col h-screen bg-global w-full">
+                    <header className="bg-red-700/90 backdrop-blur-md text-white p-6 shadow-md flex justify-between items-center z-10">
+                        <h1 className="text-3xl font-bold title-font flex items-center gap-3">
+                            <Icon name="brain-circuit" /> Tantangan Berpikir Kritis (HOTS)
+                        </h1>
+                        <button onClick={() => navigate('menu')} className="bg-red-800 hover:bg-red-900 px-6 py-3 rounded-xl font-bold flex items-center gap-2 text-xl">
+                            <Icon name="arrow-left" /> Kembali
+                        </button>
+                    </header>
+                    <div className="flex-1 p-8 overflow-y-auto custom-scroll flex justify-center">
+                        <div className="max-w-4xl w-full space-y-8">
+                            <div className="glass-panel p-8 rounded-3xl shadow-xl border-t-8 border-red-500">
+                                <div className="flex justify-center mb-6">
+                                    <div className="bg-red-100 p-4 rounded-full text-red-500"><Icon name="book-open-check" size={48} /></div>
+                                </div>
+                                <h2 className="text-3xl font-bold text-center text-gray-800 mb-8 title-font">Studi Kasus: Geografi Kota Balikpapan</h2>
+                                
+                                <div className="bg-gray-50 p-6 rounded-2xl border border-gray-200 text-xl leading-relaxed text-gray-700 italic mb-8 shadow-inner">
+                                    "Budi tinggal di kota Balikpapan, Kalimantan Timur, yang dijuluki 'Kota Minyak'. Kotanya sangat unik karena berada di sepanjang pesisir Selat Makassar namun sebagian besar wilayahnya berupa area perbukitan. Karena letaknya yang strategis, Balikpapan menjadi pelabuhan industri yang ramai dan gerbang utama menuju Ibu Kota Nusantara (IKN). Namun, dengan bentuk muka bumi yang berbukit-bukit dan curah hujan iklim tropis yang tinggi, beberapa kawasan tempat tinggal warga rawan mengalami tanah longsor, sementara wilayah pantainya terancam abrasi akibat ombak dan aktivitas kapal laut."
+                                </div>
+
+                                <div className="space-y-6">
+                                    <h3 className="text-2xl font-bold text-red-700">Pertanyaan Diskusi (Tuliskan analisismu di buku tugas):</h3>
+                                    
+                                    <div className="bg-red-50 p-6 rounded-xl border border-red-100">
+                                        <p className="text-xl font-bold text-gray-800 mb-2">Soal 1</p>
+                                        <p className="text-lg text-gray-700">Berdasarkan cerita di atas, jelaskan bagaimana kondisi geografis Balikpapan (pesisir pantai dan perbukitan) memberikan <b>keuntungan ekonomi</b> sekaligus <b>ancaman bencana alam</b> bagi masyarakatnya!</p>
+                                    </div>
+                                    
+                                    <div className="bg-red-50 p-6 rounded-xl border border-red-100">
+                                        <p className="text-xl font-bold text-gray-800 mb-2">Soal 2</p>
+                                        <p className="text-lg text-gray-700">Sebagai generasi inovator yang berada di wilayah strategis dekat IKN, <b>solusi kreatif apa</b> yang dapat kamu usulkan untuk mencegah masalah tanah longsor di area perbukitan dengan memanfaatkan kekayaan flora (tumbuhan) khas daerah tropis?</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+
+            // --- Main Router ---
+            return (
+                <div className="w-full h-screen font-sans text-gray-900 bg-white">
+                    {screen === 'home' && renderHome()}
+                    {screen === 'menu' && renderMenu()}
+                    {screen === 'tujuan' && renderTujuan()}
+                    {screen === 'materi' && renderMateri()}
+                    {screen === 'game' && renderGame()}
+                    {screen === 'asesmen' && renderAsesmen()}
+                    {screen === 'hots' && renderHOTS()}
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
